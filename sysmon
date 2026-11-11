@@ -1,0 +1,73 @@
+#!/bin/bash
+# Metrics source for the Sysmon bar widget.
+#
+# Reads /sys and /proc directly plus one statvfs call, so a 10s poll costs a
+# fraction of a millisecond of CPU and never wakes a discrete GPU.
+#
+# Output: one JSON line with percentages, temperature and a ready-to-show tooltip.
+
+set -u
+
+# --- CPU package temperature (coretemp hwmon; falls back to any temp1) -----
+cpu_mdeg=""
+fallback=""
+for name in /sys/class/hwmon/hwmon*/name; do
+  [[ -r $name ]] || continue
+  hwmon_dir=${name%/*}
+  [[ -r $hwmon_dir/temp1_input ]] || continue
+  [[ -z $fallback ]] && fallback=$(<"$hwmon_dir/temp1_input")
+  if [[ $(<"$name") == "coretemp" ]]; then
+    cpu_mdeg=$(<"$hwmon_dir/temp1_input")
+    break
+  fi
+done
+[[ -z $cpu_mdeg ]] && cpu_mdeg=${fallback:-0}
+cpu_c=$(( cpu_mdeg / 1000 ))
+
+# --- CPU load (delta since the previous poll, kept in tmpfs) ---------------
+state="${XDG_RUNTIME_DIR:-/tmp}/omarchy-sysmon.cpu"
+read -r _ u n s idle iowait irq sirq steal _ < /proc/stat
+idle_all=$(( idle + iowait ))
+total=$(( u + n + s + idle_all + irq + sirq + steal ))
+if [[ -r $state ]]; then
+  read -r prev_idle prev_total < "$state" 2>/dev/null || { prev_idle=$idle_all; prev_total=$total; }
+else
+  prev_idle=$idle_all
+  prev_total=$total
+fi
+d_total=$(( total - prev_total ))
+d_idle=$(( idle_all - prev_idle ))
+if (( d_total > 0 )); then
+  cpu_pct=$(( 100 * (d_total - d_idle) / d_total ))
+else
+  cpu_pct=0
+fi
+(( cpu_pct < 0 )) && cpu_pct=0
+(( cpu_pct > 100 )) && cpu_pct=100
+printf '%s %s\n' "$idle_all" "$total" > "$state" 2>/dev/null
+
+# --- RAM -------------------------------------------------------------------
+mem_total=0
+mem_avail=0
+while read -r key value _; do
+  case $key in
+    MemTotal:) mem_total=$value ;;
+    MemAvailable:) mem_avail=$value ;;
+  esac
+done < /proc/meminfo
+[[ $mem_total -gt 0 ]] || mem_total=1
+mem_total_gb=$(( mem_total / 1024 / 1024 ))
+mem_pct=$(( 100 * (mem_total - mem_avail) / mem_total ))
+
+# --- Disk usage on / -------------------------------------------------------
+read -r disk_blocks disk_avail bsize _ < <(stat -f -c '%b %a %S' / 2>/dev/null)
+[[ -n ${disk_blocks:-} && -n ${disk_avail:-} && -n ${bsize:-} ]] || { disk_blocks=1; disk_avail=1; bsize=1; }
+disk_free_gb=$(( disk_avail * bsize / 1024 / 1024 / 1024 ))
+disk_pct=$(( 100 * (disk_blocks - disk_avail) / disk_blocks ))
+
+# --- Output ----------------------------------------------------------------
+mem_used_tenths=$(( (mem_total - mem_avail) * 10 / 1024 / 1024 ))
+tooltip="CPU ${cpu_pct}% · ${cpu_c}°C · RAM ${mem_pct}% ($((mem_used_tenths / 10)).$((mem_used_tenths % 10))/${mem_total_gb} GB) · Disk ${disk_pct}% (${disk_free_gb} GB free) · Click for btop"
+
+printf '{"cpu":%d,"ram":%d,"disk":%d,"temp":%d,"tooltip":"%s"}\n' \
+  "$cpu_pct" "$mem_pct" "$disk_pct" "$cpu_c" "$tooltip"

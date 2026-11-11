@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "sl0vvman.sysmon",
+  "name": "Sysmon",
+  "version": "1.0.0",
+  "author": "sl0vvman",
+  "license": "MIT",
+  "description": "Three compact bar gauges for CPU load, RAM usage and disk usage, with a detail tooltip.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Sysmon",
+    "description": "CPU load, RAM and disk usage as three mini bar gauges. Hover for numbers, click to open btop.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 10,
+      "clickCommand": "omarchy-launch-or-focus-tui btop"
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "min": 2,
+        "max": 3600,
+        "step": 1,
+        "defaultValue": 10
+      },
+      {
+        "key": "clickCommand",
+        "type": "string",
+        "label": "Click command",
+        "description": "Command run when the widget is clicked.",
+        "defaultValue": "omarchy-launch-or-focus-tui btop"
+      }
+    ]
+  }
+}
