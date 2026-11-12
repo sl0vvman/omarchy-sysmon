@@ -25,6 +25,12 @@ Item {
       ? String(settings.clickCommand) : ""
     return value !== "" ? value : "omarchy-launch-or-focus-tui btop"
   }
+  // Which filesystem the disk gauge measures. Handy when /home lives on a
+  // different volume than /.
+  readonly property string diskPath: {
+    var value = settings && settings.path !== undefined ? String(settings.path) : ""
+    return value !== "" ? value : "/"
+  }
   // The helper script ships next to this file inside the plugin directory.
   readonly property string scriptPath: decodeURIComponent(
     String(Qt.resolvedUrl("sysmon")).replace(/^file:\/\//, ""))
@@ -115,7 +121,7 @@ Item {
 
   Process {
     id: poll
-    command: ["bash", root.scriptPath]
+    command: ["bash", root.scriptPath, root.diskPath]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.load(text)

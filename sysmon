@@ -59,15 +59,17 @@ done < /proc/meminfo
 mem_total_gb=$(( mem_total / 1024 / 1024 ))
 mem_pct=$(( 100 * (mem_total - mem_avail) / mem_total ))
 
-# --- Disk usage on / -------------------------------------------------------
-read -r disk_blocks disk_avail bsize _ < <(stat -f -c '%b %a %S' / 2>/dev/null)
+# --- Disk usage of the requested path (default /) --------------------------
+target="${1:-/}"
+[[ -e $target ]] || target="/"
+read -r disk_blocks disk_avail bsize _ < <(stat -f -c '%b %a %S' -- "$target" 2>/dev/null)
 [[ -n ${disk_blocks:-} && -n ${disk_avail:-} && -n ${bsize:-} ]] || { disk_blocks=1; disk_avail=1; bsize=1; }
 disk_free_gb=$(( disk_avail * bsize / 1024 / 1024 / 1024 ))
 disk_pct=$(( 100 * (disk_blocks - disk_avail) / disk_blocks ))
 
 # --- Output ----------------------------------------------------------------
 mem_used_tenths=$(( (mem_total - mem_avail) * 10 / 1024 / 1024 ))
-tooltip="CPU ${cpu_pct}% · ${cpu_c}°C · RAM ${mem_pct}% ($((mem_used_tenths / 10)).$((mem_used_tenths % 10))/${mem_total_gb} GB) · Disk ${disk_pct}% (${disk_free_gb} GB free) · Click for btop"
+tooltip="CPU ${cpu_pct}% · ${cpu_c}°C · RAM ${mem_pct}% ($((mem_used_tenths / 10)).$((mem_used_tenths % 10))/${mem_total_gb} GB) · Disk ${target} ${disk_pct}% (${disk_free_gb} GB free) · Click for btop"
 
 printf '{"cpu":%d,"ram":%d,"disk":%d,"temp":%d,"tooltip":"%s"}\n' \
   "$cpu_pct" "$mem_pct" "$disk_pct" "$cpu_c" "$tooltip"

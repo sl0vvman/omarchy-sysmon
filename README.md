@@ -12,7 +12,7 @@ The gauges read left to right as **CPU**, **RAM**, **disk**. Each one has a dim 
 
 - **CPU load** from a `/proc/stat` delta between polls (real current load, not the boot average) and **CPU temperature** from the `coretemp` hwmon sensor.
 - **RAM usage** from `/proc/meminfo` (used vs. total, with `MemAvailable`).
-- **Disk usage** of `/` from `statvfs`.
+- **Disk usage** from `statvfs` — `/` by default, or any path you configure (e.g. `/home`).
 - **Hover tooltip**: `CPU 10% · 43°C · RAM 27% (4.2/15 GB) · Disk 53% (52 GB free) · Click for btop`.
 - **Click** opens btop by default; the command is configurable.
 - **Cheap**: no root, no `sensors`, no `nvidia-smi`, no extra packages. A poll costs roughly 7 ms once every 10 seconds and touches only `/proc`, `/sys`, and one `stat` call.
@@ -47,11 +47,16 @@ Set them from the bar's settings panel, or from the command line:
 | --- | --- | --- |
 | `refreshIntervalSec` | `10` | Seconds between polls (2–3600) |
 | `clickCommand` | `omarchy-launch-or-focus-tui btop` | Command run on click |
+| `path` | `/` | Filesystem path whose usage the disk gauge shows |
 
 ```bash
 omarchy bar set sl0vvman.sysmon refreshIntervalSec 30
 omarchy bar set sl0vvman.sysmon clickCommand "omarchy-launch-or-focus-tui htop"
+omarchy bar set sl0vvman.sysmon path /home
 ```
+
+`path` is useful when `/home` lives on a separate volume: point the gauge at the
+filesystem that actually holds your data.
 
 ## How it works
 

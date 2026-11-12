@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "sl0vvman.sysmon",
   "name": "Sysmon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "sl0vvman",
   "license": "MIT",
   "description": "Three compact bar gauges for CPU load, RAM usage and disk usage, with a detail tooltip.",
@@ -20,7 +20,8 @@
     "defaultSection": "right",
     "defaults": {
       "refreshIntervalSec": 10,
-      "clickCommand": "omarchy-launch-or-focus-tui btop"
+      "clickCommand": "omarchy-launch-or-focus-tui btop",
+      "path": "/"
     },
     "schema": [
       {
@@ -38,6 +39,13 @@
         "label": "Click command",
         "description": "Command run when the widget is clicked.",
         "defaultValue": "omarchy-launch-or-focus-tui btop"
+      },
+      {
+        "key": "path",
+        "type": "path",
+        "label": "Filesystem to monitor",
+        "description": "Any path on the filesystem whose usage the disk gauge should show.",
+        "defaultValue": "/"
       }
     ]
   }
